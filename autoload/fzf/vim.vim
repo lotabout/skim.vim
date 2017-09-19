@@ -634,6 +634,23 @@ function! s:ag_handler(lines, with_column)
   endif
 endfunction
 
+function! fzf#vim#ag_interactive(dir, ...)
+  let dir = empty(a:dir) ? '.' : a:dir
+  let opts = {
+  \ 'source':  "none",
+  \ 'column':  1,
+  \ 'options': ['-i', '-c', 'ag --nogroup --column --color '.get(g:, 'ag_opts', '').' "{}" ' . dir,
+  \             '--ansi', '--cmd-prompt', 'Ag> ',
+  \             '--multi', '--bind', 'alt-a:select-all,alt-d:deselect-all',
+  \             '--color', 'hl:68,hl+:110']
+  \}
+  function! opts.sink(lines)
+    return s:ag_handler(a:lines, self.column)
+  endfunction
+  let opts['sink*'] = remove(opts, 'sink')
+  return s:fzf('rg', opts, a:000)
+endfunction
+
 " query, [[ag options], options]
 function! fzf#vim#ag(query, ...)
   if type(a:query) != s:TYPE.string
