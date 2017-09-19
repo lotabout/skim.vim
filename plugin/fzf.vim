@@ -91,7 +91,7 @@ if has('nvim') && get(g:, 'fzf_nvim_statusline', 1)
         highlight default fzf2 ctermfg=151 ctermbg=238 guifg=#BCDDBD guibg=#565656
         highlight default fzf3 ctermfg=252 ctermbg=238 guifg=#D9D9D9 guibg=#565656
       endif
-      setlocal statusline=%#fzf1#\ >\ %#fzf2#fz%#fzf3#f
+      setlocal statusline=%#fzf1#\ >\ %#fzf2#sk%#fzf3#im
     endif
   endfunction
 
@@ -108,7 +108,7 @@ if has('nvim') && get(g:, 'fzf_nvim_statusline', 1)
 
   augroup _fzf_statusline
     autocmd!
-    autocmd FileType fzf call s:fzf_nvim_term()
+    autocmd FileType skim call s:fzf_nvim_term()
   augroup END
 endif
 
