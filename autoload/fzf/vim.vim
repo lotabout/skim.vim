@@ -636,11 +636,32 @@ endfunction
 
 function! fzf#vim#ag_interactive(dir, ...)
   let dir = empty(a:dir) ? '.' : a:dir
+  let command = 'ag --nogroup --column --color '.get(g:, 'ag_opts', '').' "{}" ' . dir
+  return call('fzf#vim#grep_interactive', extend([command, 1], a:000))
+endfunction
+
+function! fzf#vim#rg_interactive(dir, ...)
+  let dir = empty(a:dir) ? '.' : a:dir
+  let command = 'rg --color=always --line-number '.get(g:, 'ag_opts', '').' "{}" ' . dir
+  return call('fzf#vim#grep_interactive', extend([command, 1], a:000))
+endfunction
+
+function! fzf#vim#grep_interactive(command, with_column, ...)
+  let words = []
+  for word in split(a:command)
+    if word !~# '^[a-z]'
+      break
+    endif
+    call add(words, word)
+  endfor
+  let words   = empty(words) ? ['grep'] : words
+  let name    = join(words, '-')
+  let capname = join(map(words, 'toupper(v:val[0]).v:val[1:]'), '')
   let opts = {
-  \ 'source':  "none",
-  \ 'column':  1,
-  \ 'options': ['-i', '-c', 'ag --nogroup --column --color '.get(g:, 'ag_opts', '').' "{}" ' . dir,
-  \             '--ansi', '--cmd-prompt', 'Ag> ',
+  \ 'source':  'none',
+  \ 'column':  a:with_column,
+  \ 'options': ['-i', '-c', a:command,
+  \             '--ansi', '--cmd-prompt', capname.'> ',
   \             '--multi', '--bind', 'alt-a:select-all,alt-d:deselect-all',
   \             '--color', 'hl:68,hl+:110']
   \}
@@ -648,7 +669,7 @@ function! fzf#vim#ag_interactive(dir, ...)
     return s:ag_handler(a:lines, self.column)
   endfunction
   let opts['sink*'] = remove(opts, 'sink')
-  return s:fzf('rg', opts, a:000)
+  return s:fzf(name, opts, a:000)
 endfunction
 
 " query, [[ag options], options]
