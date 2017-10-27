@@ -1,3 +1,8 @@
+This is a fork of [fzf.vim](https://github.com/junegunn/fzf.vim)
+but for [skim](https://github.com/lotabout/skim). I'd like to take advanctage
+of fzf.vim as much as possible and only maintain the features where skim is
+not compatible with fzf.
+
 fzf :heart: vim
 ===============
 
