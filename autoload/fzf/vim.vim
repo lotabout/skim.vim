@@ -588,7 +588,7 @@ function! fzf#vim#buffers(...)
   return s:fzf('buffers', {
   \ 'source':  map(s:buflisted_sorted(), 's:format_buffer(v:val)'),
   \ 'sink*':   s:function('s:bufopen'),
-  \ 'options': '-m --tiebreak=index --ansi -d "\t" -n 2,1..2 --prompt="Buf> "'.s:q(query)
+  \ 'options': '-m --tiebreak=index --ansi -d "\t" -n 0,1,2 --prompt="Buf> "'.s:q(query)
   \}, args)
 endfunction
 
@@ -782,7 +782,7 @@ function! fzf#vim#buffer_tags(query, ...)
     return s:fzf('btags', {
     \ 'source':  s:btags_source(tag_cmds),
     \ 'sink*':   s:function('s:btags_sink'),
-    \ 'options': '--reverse -m -d "\t" --with-nth 1,4.. -n 1 --prompt "BTags> "'.s:q(a:query)}, args)
+    \ 'options': '--reverse -m -d "\t" --with-nth 0,3.. -n 0 --prompt "BTags> "'.s:q(a:query)}, args)
   catch
     return s:warn(v:exception)
   endtry
@@ -886,7 +886,7 @@ function! fzf#vim#snippets(...)
   let colored = map(aligned, 's:yellow(v:val[0])."\t".v:val[1]')
   return s:fzf('snippets', {
   \ 'source':  colored,
-  \ 'options': '--ansi --tiebreak=index -m -n 1 -d "\t"',
+  \ 'options': '--ansi --tiebreak=index -m -n 0 -d "\t"',
   \ 'sink':    s:function('s:inject_snippet')}, a:000)
 endfunction
 
@@ -1012,7 +1012,7 @@ function! fzf#vim#helptags(...)
   \ 'source':  'grep -H ".*" '.join(map(tags, 'skim#shellescape(v:val)')).
     \ ' | perl -n '.skim#shellescape(s:helptags_script).' | sort',
   \ 'sink':    s:function('s:helptag_sink'),
-  \ 'options': ['--ansi', '-m', '--tiebreak=begin', '--with-nth', '..-2']}, a:000)
+  \ 'options': ['--ansi', '-m', '--tiebreak=begin', '--with-nth', '..-1']}, a:000)
 endfunction
 
 " ------------------------------------------------------------------
