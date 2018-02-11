@@ -642,7 +642,7 @@ endfunction
 
 function! fzf#vim#rg_interactive(dir, ...)
   let dir = empty(a:dir) ? '.' : a:dir
-  let command = 'rg --color=always --line-number '.get(g:, 'ag_opts', '').' "{}" ' . dir
+  let command = 'rg --column --line-number --color=always '.get(g:, 'rg_opts', '').' "{}" ' . dir
   return call('fzf#vim#grep_interactive', extend([command, 1], a:000))
 endfunction
 
