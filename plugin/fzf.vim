@@ -49,6 +49,7 @@ call s:defs([
 \'command! -bar -bang Colors                             call fzf#vim#colors(<bang>0)',
 \'command!      -bang -nargs=+ -complete=dir Locate      call fzf#vim#locate(<q-args>, <bang>0)',
 \'command!      -bang -nargs=* Ag                        call fzf#vim#ag(<q-args>, <bang>0)',
+\'command!      -bang -nargs=* Rg                        call fzf#vim#grep("rg --column --line-number --no-heading --color=always --smart-case ".shellescape(<q-args>), 1, <bang>0)',
 \'command!      -bang -nargs=* Tags                      call fzf#vim#tags(<q-args>, <bang>0)',
 \'command!      -bang -nargs=* BTags                     call fzf#vim#buffer_tags(<q-args>, <bang>0)',
 \'command! -bar -bang Snippets                           call fzf#vim#snippets(<bang>0)',
@@ -77,7 +78,7 @@ function! fzf#complete(...)
   return call('fzf#vim#complete', a:000)
 endfunction
 
-if has('nvim') && get(g:, 'fzf_nvim_statusline', 1)
+if (has('nvim') || has('terminal') && has('patch-8.0.995')) && (get(g:, 'fzf_statusline', 1) || get(g:, 'fzf_nvim_statusline', 1))
   function! s:fzf_restore_colors()
     if exists('#User#FzfStatusLine')
       doautocmd User FzfStatusLine
@@ -95,7 +96,7 @@ if has('nvim') && get(g:, 'fzf_nvim_statusline', 1)
     endif
   endfunction
 
-  function! s:fzf_nvim_term()
+  function! s:fzf_vim_term()
     if get(w:, 'airline_active', 0)
       let w:airline_disabled = 1
       autocmd BufWinLeave <buffer> let w:airline_disabled = 0
@@ -108,11 +109,14 @@ if has('nvim') && get(g:, 'fzf_nvim_statusline', 1)
 
   augroup _fzf_statusline
     autocmd!
-    autocmd FileType skim call s:fzf_nvim_term()
+    autocmd FileType skim call s:fzf_vim_term()
   augroup END
 endif
 
-let g:fzf#vim#buffers = {}
+if !exists('g:fzf#vim#buffers')
+  let g:fzf#vim#buffers = {}
+endif
+
 augroup fzf_buffers
   autocmd!
   if exists('*reltimefloat')

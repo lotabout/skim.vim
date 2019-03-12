@@ -1,15 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 REVERSE="\x1b[7m"
 RESET="\x1b[m"
 
-if [ "$1" == "-v" ]; then
-  SPLIT=1
-  shift
-fi
-
 if [ -z "$1" ]; then
-  echo "usage: $0 [-v] FILENAME[:LINENO][:IGNORED]"
+  echo "usage: $0 FILENAME[:LINENO][:IGNORED]"
   exit 1
 fi
 
@@ -27,31 +22,33 @@ if [ ! -r "$FILE" ]; then
   exit 1
 fi
 
-if [[ "$(file --mime "$FILE")" =~ binary ]]; then
+if [[ "$(file --dereference --mime "$FILE")" =~ binary ]]; then
   echo "$1 is a binary file"
   exit 0
 fi
 
 if [ -z "$CENTER" ]; then
-  CENTER=1
+  CENTER=0
 fi
 
-if [ -n "$FZF_PREVIEW_HEIGHT" ]; then
-  LINES=$FZF_PREVIEW_HEIGHT
-else
+if [ -z "$LINES" ]; then
   if [ -r /dev/tty ]; then
     LINES=$(stty size < /dev/tty | awk '{print $1}')
   else
     LINES=40
   fi
-  if [ -n "$SPLIT" ]; then
-    LINES=$(($LINES/2)) # using horizontal split
-  fi
-  LINES=$(($LINES-2)) # remove preview border
 fi
 
 FIRST=$(($CENTER-$LINES/3))
 FIRST=$(($FIRST < 1 ? 1 : $FIRST))
 LAST=$((${FIRST}+${LINES}-1))
 
-awk "NR >= $FIRST && NR <= $LAST {if (NR == $CENTER) printf(\"$REVERSE%5d %s\n$RESET\", NR, \$0); else printf(\"%5d %s\n\", NR, \$0)}" $FILE
+DEFAULT_COMMAND="bat --style=numbers --color=always {} || highlight -O ansi -l {} || coderay {} || rougify {} || cat {}"
+CMD=${FZF_PREVIEW_COMMAND:-$DEFAULT_COMMAND}
+CMD=${CMD//{\}/$(printf %q "$FILE")}
+
+eval "$CMD" 2> /dev/null | awk "NR >= $FIRST && NR <= $LAST { \
+    if (NR == $CENTER) \
+        { gsub(/\x1b[[0-9;]*m/, \"&$REVERSE\"); printf(\"$REVERSE%s\n$RESET\", \$0); } \
+    else printf(\"$RESET%s\n\", \$0); \
+    }"
