@@ -3,6 +3,16 @@ but for [skim](https://github.com/lotabout/skim). I'd like to take advanctage
 of fzf.vim as much as possible and only maintain the features where skim is
 not compatible with fzf.
 
+Besides, skim.vim add the interactive version of `ag` and `rg` function, you
+could add these lines to your vimrc and try out.
+
+```
+command! -bang -nargs=* Ag call fzf#vim#ag_interactive(<q-args>, fzf#vim#with_preview('right:50%:hidden', 'alt-h'))
+command! -bang -nargs=* Rg call fzf#vim#rg_interactive(<q-args>, fzf#vim#with_preview('right:50%:hidden', 'alt-h'))
+```
+
+ALL THE FOLLOWING ARE FZF's DOC.
+
 fzf :heart: vim
 ===============
 
