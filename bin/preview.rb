@@ -6,7 +6,7 @@ require 'open3'
 require 'shellwords'
 
 COMMAND = ENV.fetch(
-  'FZF_PREVIEW_COMMAND',
+  'SKIM_PREVIEW_COMMAND',
   %[bat --style=numbers --color=always {} || highlight -O ansi -l {} || coderay {} || rougify {} || cat {}]
 )
 ANSI    = /\x1b\[[0-9;]*m/
