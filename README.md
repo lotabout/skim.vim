@@ -1,17 +1,32 @@
 This is a fork of [fzf.vim](https://github.com/junegunn/fzf.vim)
-but for [skim](https://github.com/lotabout/skim). I'd like to take advanctage
-of fzf.vim as much as possible and only maintain the features where skim is
-not compatible with fzf.
+but for [skim](https://github.com/lotabout/skim). Everything should work out
+of the box with skim.
+
+How to use? Add the configuration to your vimrc(using vim-plug):
+
+```vim
+Plug 'lotabout/skim', { 'dir': '~/.skim', 'do': './install' }
+Plug 'lotabout/skim.vim'
+```
 
 Besides, skim.vim add the interactive version of `ag` and `rg` function, you
 could add these lines to your vimrc and try out.
 
-```
+```vim
 command! -bang -nargs=* Ag call fzf#vim#ag_interactive(<q-args>, fzf#vim#with_preview('right:50%:hidden', 'alt-h'))
 command! -bang -nargs=* Rg call fzf#vim#rg_interactive(<q-args>, fzf#vim#with_preview('right:50%:hidden', 'alt-h'))
 ```
 
+Notice the functions are prefixed with `fzf`, that's because skim.vim only
+change the minimal incompatible settings and keep everything else as it is. So
+the fzf's configurations below should just work for skim.vim.
+
+To contributors: this project would try to maintain only the minimal changes to make it work with skim.
+And I would sync it with fzf.vim every now and then to take advantage of the work of all these excellent developers.
+
 ALL THE FOLLOWING ARE FZF's DOC.
+
+---
 
 fzf :heart: vim
 ===============
