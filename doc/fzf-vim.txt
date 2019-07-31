@@ -1,4 +1,4 @@
-fzf-vim.txt	fzf-vim	Last change: August 31 2018
+*fzf-vim.txt*	fzf-vim	Last change: August 31 2018
 FZF-VIM - TABLE OF CONTENTS                                *fzf-vim* *fzf-vim-toc*
 ==============================================================================
 
@@ -164,7 +164,7 @@ See {README-VIM.md}{4} of the main fzf repository for details.
     " In Neovim, you can set up fzf window using a Vim command
     let g:skim_layout = { 'window': 'enew' }
     let g:skim_layout = { 'window': '-tabnew' }
-    let g:skim_layout = { 'window': '10split' }
+    let g:skim_layout = { 'window': '10new' }
 
     " Customize fzf colors to match your color scheme
     let g:skim_colors =

@@ -154,7 +154,7 @@ let g:skim_layout = { 'down': '~40%' }
 " In Neovim, you can set up fzf window using a Vim command
 let g:skim_layout = { 'window': 'enew' }
 let g:skim_layout = { 'window': '-tabnew' }
-let g:skim_layout = { 'window': '10split' }
+let g:skim_layout = { 'window': '10new' }
 
 " Customize fzf colors to match your color scheme
 let g:skim_colors =

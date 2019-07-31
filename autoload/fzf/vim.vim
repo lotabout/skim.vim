@@ -485,7 +485,7 @@ function! s:history_sink(type, lines)
   if key == 'ctrl-e'
     call histadd(a:type, item)
     redraw
-    call feedkeys(a:type."\<up>")
+    call feedkeys(a:type."\<up>", 'n')
   else
     if a:type == ':'
       call histadd(a:type, item)
@@ -841,7 +841,7 @@ function! s:tags_sink(lines)
         let relpath = parts[1][:-2]
         let abspath = relpath =~ (s:is_win ? '^[A-Z]:\' : '^/') ? relpath : join([base, relpath], '/')
         call s:open(cmd, expand(abspath, 1))
-        execute excmd
+        silent execute excmd
         call add(qfl, {'filename': expand('%'), 'lnum': line('.'), 'text': getline('.')})
       catch /^Vim:Interrupt$/
         break
