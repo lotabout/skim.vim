@@ -225,7 +225,7 @@ let s:default_action = {
 
 function! s:action_for(key, ...)
   let default = a:0 ? a:1 : ''
-  let Cmd = get(get(g:, 'fzf_action', s:default_action), a:key, default)
+  let Cmd = get(get(g:, 'skim_action', s:default_action), a:key, default)
   return type(Cmd) == s:TYPE.string ? Cmd : default
 endfunction
 
@@ -1156,7 +1156,7 @@ function! s:commits(buffer_local, args)
   endif
 
   let command = a:buffer_local ? 'BCommits' : 'Commits'
-  let expect_keys = join(keys(get(g:, 'fzf_action', s:default_action)), ',')
+  let expect_keys = join(keys(get(g:, 'skim_action', s:default_action)), ',')
   let options = {
   \ 'source':  source,
   \ 'sink*':   s:function('s:commits_sink'),

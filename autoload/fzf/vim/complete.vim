@@ -49,7 +49,7 @@ endif
 function! fzf#vim#complete#word(...)
   return fzf#vim#complete(s:extend({
     \ 'source': 'cat /usr/share/dict/words'},
-    \ get(a:000, 0, fzf#wrap())))
+    \ get(a:000, 0, skim#wrap())))
 endfunction
 
 " ----------------------------------------------------------------------------
@@ -73,7 +73,7 @@ function! s:file_source(prefix)
   let [dir, head, tail] = s:file_split_prefix(a:prefix)
   return printf(
     \ "cd %s && ".s:file_cmd." | sed %s",
-    \ fzf#shellescape(dir), fzf#shellescape('s:^:'.(empty(a:prefix) || a:prefix == tail ? '' : head).':'))
+    \ skim#shellescape(dir), skim#shellescape('s:^:'.(empty(a:prefix) || a:prefix == tail ? '' : head).':'))
 endfunction
 
 function! s:file_options(prefix)
@@ -130,7 +130,7 @@ function! fzf#vim#complete#path(command, ...)
   return fzf#vim#complete(s:extend({
   \ 'prefix':  s:function('s:fname_prefix'),
   \ 'source':  s:function('s:file_source'),
-  \ 'options': s:function('s:file_options')}, get(a:000, 0, fzf#wrap())))
+  \ 'options': s:function('s:file_options')}, get(a:000, 0, skim#wrap())))
 endfunction
 
 " ----------------------------------------------------------------------------
@@ -149,13 +149,13 @@ function! fzf#vim#complete#line(...)
   \ 'prefix':  '^.*$',
   \ 'source':  lines,
   \ 'options': '--tiebreak=index --ansi --nth '.nth.'.. --tabstop=1',
-  \ 'reducer': s:function('s:reduce_line')}, get(a:000, 0, fzf#wrap())))
+  \ 'reducer': s:function('s:reduce_line')}, get(a:000, 0, skim#wrap())))
 endfunction
 
 function! fzf#vim#complete#buffer_line(...)
   return fzf#vim#complete(s:extend({
   \ 'prefix': '^.*$',
-  \ 'source': fzf#vim#_uniq(getline(1, '$'))}, get(a:000, 0, fzf#wrap())))
+  \ 'source': fzf#vim#_uniq(getline(1, '$'))}, get(a:000, 0, skim#wrap())))
 endfunction
 
 let &cpo = s:cpo_save

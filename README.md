@@ -142,22 +142,22 @@ See [README-VIM.md][readme-vim] of the main fzf repository for details.
 
 ```vim
 " This is the default extra key bindings
-let g:fzf_action = {
+let g:skim_action = {
   \ 'ctrl-t': 'tab split',
   \ 'ctrl-x': 'split',
   \ 'ctrl-v': 'vsplit' }
 
 " Default fzf layout
 " - down / up / left / right
-let g:fzf_layout = { 'down': '~40%' }
+let g:skim_layout = { 'down': '~40%' }
 
 " In Neovim, you can set up fzf window using a Vim command
-let g:fzf_layout = { 'window': 'enew' }
-let g:fzf_layout = { 'window': '-tabnew' }
-let g:fzf_layout = { 'window': '10split' }
+let g:skim_layout = { 'window': 'enew' }
+let g:skim_layout = { 'window': '-tabnew' }
+let g:skim_layout = { 'window': '10split' }
 
 " Customize fzf colors to match your color scheme
-let g:fzf_colors =
+let g:skim_colors =
 \ { 'fg':      ['fg', 'Normal'],
   \ 'bg':      ['bg', 'Normal'],
   \ 'hl':      ['fg', 'Comment'],
@@ -176,7 +176,7 @@ let g:fzf_colors =
 " CTRL-N and CTRL-P will be automatically bound to next-history and
 " previous-history instead of down and up. If you don't like the change,
 " explicitly bind the keys to down and up in your $FZF_DEFAULT_OPTS.
-let g:fzf_history_dir = '~/.local/share/fzf-history'
+let g:skim_history_dir = '~/.local/share/skim-history'
 ```
 
 #### Command-local options
@@ -287,7 +287,7 @@ inoremap <expr> <c-x><c-k> fzf#vim#complete('cat /usr/share/dict/words')
 ```
 
 For advanced uses, you can pass an options dictionary to the function. The set
-of options is pretty much identical to that for `fzf#run` only with the
+of options is pretty much identical to that for `skim#run` only with the
 following exceptions:
 
 - `reducer` (funcref)
@@ -301,7 +301,7 @@ following exceptions:
 
 ```vim
 " Global line completion (not just open buffers. ripgrep required.)
-inoremap <expr> <c-x><c-l> fzf#vim#complete(fzf#wrap({
+inoremap <expr> <c-x><c-l> fzf#vim#complete(skim#wrap({
   \ 'prefix': '^.*$',
   \ 'source': 'rg -n ^ --color always',
   \ 'options': '--ansi --delimiter : --nth 3..',
