@@ -789,11 +789,11 @@ function! fzf#vim#grep(grep_command, has_column, ...)
   endfunction
   let opts['sink*'] = remove(opts, 'sink')
   try
-    let prev_default_command = $FZF_DEFAULT_COMMAND
-    let $FZF_DEFAULT_COMMAND = a:grep_command
+    let prev_default_command = $SKIM_DEFAULT_COMMAND
+    let $SKIM_DEFAULT_COMMAND = a:grep_command
     return s:fzf(name, opts, a:000)
   finally
-    let $FZF_DEFAULT_COMMAND = prev_default_command
+    let $SKIM_DEFAULT_COMMAND = prev_default_command
   endtry
 endfunction
 
