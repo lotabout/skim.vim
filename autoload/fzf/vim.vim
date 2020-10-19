@@ -28,9 +28,10 @@ set cpo&vim
 " Common
 " ------------------------------------------------------------------
 
+let s:min_version = '0.23.0'
 let s:is_win = has('win32') || has('win64')
 let s:layout_keys = ['window', 'up', 'down', 'left', 'right']
-let s:bin_dir = expand('<sfile>:h:h:h').'/bin/'
+let s:bin_dir = expand('<sfile>:p:h:h:h').'/bin/'
 let s:bin = {
 \ 'preview': s:bin_dir.'preview.sh',
 \ 'tags':    s:bin_dir.'tags.pl' }
@@ -41,10 +42,44 @@ if s:is_win
   else
     let s:bin.preview = fnamemodify(s:bin.preview, ':8')
   endif
-  let s:bin.preview = 'bash '.escape(s:bin.preview, '\')
 endif
 
 let s:wide = 120
+let s:warned = 0
+let s:checked = 0
+
+function! s:version_requirement(val, min)
+  let val = split(a:val, '\.')
+  let min = split(a:min, '\.')
+  for idx in range(0, len(min) - 1)
+    let v = get(val, idx, 0)
+    if     v < min[idx] | return 0
+    elseif v > min[idx] | return 1
+    endif
+  endfor
+  return 1
+endfunction
+
+function! s:check_requirements()
+  if s:checked
+    return
+  endif
+
+  if !exists('*skim#run')
+    throw "skim#run function not found. You also need Vim plugin from the main fzf repository (i.e. junegunn/fzf *and* junegunn/fzf.vim)"
+  endif
+  if !exists('*skim#exec')
+    throw "skim#exec function not found. You need to upgrade Vim plugin from the main fzf repository ('junegunn/fzf')"
+  endif
+  let exec = skim#exec()
+  let fzf_version = matchstr(systemlist(exec .. ' --version')[0], '[0-9.]*')
+
+  if s:version_requirement(fzf_version, s:min_version)
+    let s:checked = 1
+    return
+  end
+  throw printf('You need to upgrade fzf. Found: %s (%s). Required: %s or above.', fzf_version, exec, s:min_version)
+endfunction
 
 function! s:extend_opts(dict, eopts, prepend)
   if empty(a:eopts)
@@ -74,19 +109,30 @@ function! s:prepend_opts(dict, eopts)
   return s:extend_opts(a:dict, a:eopts, 1)
 endfunction
 
-" [[options to wrap], [preview window expression], [toggle-preview keys...]]
+" [[spec to wrap], [preview window expression], [toggle-preview keys...]]
 function! fzf#vim#with_preview(...)
-  " Default options
-  let options = {}
-  let window = 'right'
+  " Default spec
+  let spec = {}
+  let window = ''
 
   let args = copy(a:000)
 
-  " Options to wrap
+  " Spec to wrap
   if len(args) && type(args[0]) == s:TYPE.dict
-    let options = copy(args[0])
+    let spec = copy(args[0])
     call remove(args, 0)
   endif
+
+  if !executable('bash')
+    if !s:warned
+      call s:warn('Preview window not supported (bash not found in PATH)')
+      let s:warned = 1
+    endif
+    return spec
+  endif
+
+  " Placeholder expression (TODO/TBD: undocumented)
+  let placeholder = get(spec, 'placeholder', '{}')
 
   " Preview window
   if len(args) && type(args[0]) == s:TYPE.string
@@ -97,13 +143,25 @@ function! fzf#vim#with_preview(...)
     call remove(args, 0)
   endif
 
-  let preview = ['--preview-window', window, '--preview', (s:is_win ? s:bin.preview : skim#shellescape(s:bin.preview)).' {}']
+  let preview = []
+  if len(window)
+    let preview += ['--preview-window', window]
+  endif
+  if s:is_win
+    let is_wsl_bash = exepath('bash') =~? 'Windows[/\\]system32[/\\]bash.exe$'
+    let preview_cmd = 'bash '.(is_wsl_bash
+    \ ? substitute(substitute(s:bin.preview, '^\([A-Z]\):', '/mnt/\L\1', ''), '\', '/', 'g')
+    \ : escape(s:bin.preview, '\'))
+  else
+    let preview_cmd = skim#shellescape(s:bin.preview)
+  endif
+  let preview += ['--preview', preview_cmd.' '.placeholder]
 
   if len(args)
     call extend(preview, ['--bind', join(map(args, 'v:val.":toggle-preview"'), ',')])
   endif
-  call s:merge_opts(options, preview)
-  return options
+  call s:merge_opts(spec, preview)
+  return spec
 endfunction
 
 function! s:remove_layout(opts)
@@ -112,6 +170,14 @@ function! s:remove_layout(opts)
       call remove(a:opts, key)
     endif
   endfor
+  return a:opts
+endfunction
+
+function! s:reverse_list(opts)
+  let tokens = map(split($FZF_DEFAULT_OPTS, '[^a-z-]'), 'substitute(v:val, "^--", "", "")')
+  if index(tokens, 'reverse') < 0
+    return extend(['--layout=reverse-list'], a:opts)
+  endif
   return a:opts
 endfunction
 
@@ -198,6 +264,8 @@ function! s:buflisted()
 endfunction
 
 function! s:fzf(name, opts, extra)
+  call s:check_requirements()
+
   let [extra, bang] = [{}, 0]
   if len(a:extra) <= 1
     let first = get(a:extra, 0, 0)
@@ -377,7 +445,7 @@ function! fzf#vim#lines(...)
   return s:fzf('lines', {
   \ 'source':  lines,
   \ 'sink*':   s:function('s:line_handler'),
-  \ 'options': ['-m', '--tiebreak=index', '--prompt', 'Lines> ', '--ansi', '--extended', '--nth='.nth.'..', '--layout=reverse-list', '--tabstop=1', '--query', query]
+  \ 'options': s:reverse_list(['--no-multi', '--tiebreak=index', '--prompt', 'Lines> ', '--ansi', '--extended', '--nth='.nth.'..', '--tabstop=1', '--query', query])
   \}, args)
 endfunction
 
@@ -422,7 +490,7 @@ function! fzf#vim#buffer_lines(...)
   return s:fzf('blines', {
   \ 'source':  s:buffer_lines(query),
   \ 'sink*':   s:function('s:buffer_line_handler'),
-  \ 'options': ['-m', '--tiebreak=index', '--multi', '--prompt', 'BLines> ', '--ansi', '--extended', '--nth=2..', '--layout=reverse-list', '--tabstop=1']
+  \ 'options': s:reverse_list(['--no-multi', '--tiebreak=index', '--multi', '--prompt', 'BLines> ', '--ansi', '--extended', '--nth=2..', '--tabstop=1'])
   \}, args)
 endfunction
 
@@ -454,10 +522,10 @@ endfunction
 " ------------------------------------------------------------------
 " History[:/]
 " ------------------------------------------------------------------
-function! s:all_files()
+function! fzf#vim#_recent_files()
   return fzf#vim#_uniq(map(
     \ filter([expand('%')], 'len(v:val)')
-    \   + filter(map(s:buflisted_sorted(), 'bufname(v:val)'), 'len(v:val)')
+    \   + filter(map(fzf#vim#_buflisted_sorted(), 'bufname(v:val)'), 'len(v:val)')
     \   + filter(copy(v:oldfiles), "filereadable(fnamemodify(v:val, ':p'))"),
     \ 'fnamemodify(v:val, ":~:.")'))
 endfunction
@@ -519,7 +587,7 @@ endfunction
 
 function! fzf#vim#history(...)
   return s:fzf('history-files', {
-  \ 'source':  s:all_files(),
+  \ 'source':  fzf#vim#_recent_files(),
   \ 'options': ['-m', '--header-lines', !empty(expand('%')), '--prompt', 'Hist> ']
   \}, a:000)
 endfunction
@@ -552,7 +620,7 @@ function! fzf#vim#gitfiles(args, ...)
   let wrapped = skim#wrap({
   \ 'source':  'git -c color.status=always status --short --untracked-files=all',
   \ 'dir':     root,
-  \ 'options': ['--ansi', '--multi', '--nth', '2..,..', '--tiebreak=index', '--prompt', 'GitFiles?> ', '--preview', 'sh -c "(git diff --color=always -- {-1} | sed 1,4d; cat {-1}) | head -500"']
+  \ 'options': ['--ansi', '--multi', '--nth', '2..,..', '--tiebreak=index', '--prompt', 'GitFiles?> ', '--preview', 'sh -c "(git diff --color=always -- {-1} | sed 1,4d; cat {-1}) | head -1000"']
   \})
   call s:remove_layout(wrapped)
   let wrapped.common_sink = remove(wrapped, 'sink*')
@@ -606,15 +674,17 @@ function! s:bufopen(lines)
   execute 'buffer' b
 endfunction
 
-function! s:format_buffer(b)
+function! fzf#vim#_format_buffer(b)
   let name = bufname(a:b)
+  let line = exists('*getbufinfo') ? getbufinfo(a:b)[0]['lnum'] : 0
   let name = empty(name) ? '[No Name]' : fnamemodify(name, ":p:~:.")
   let flag = a:b == bufnr('')  ? s:blue('%', 'Conditional') :
           \ (a:b == bufnr('#') ? s:magenta('#', 'Special') : ' ')
   let modified = getbufvar(a:b, '&modified') ? s:red(' [+]', 'Exception') : ''
   let readonly = getbufvar(a:b, '&modifiable') ? '' : s:green(' [RO]', 'Constant')
   let extra = join(filter([modified, readonly], '!empty(v:val)'), '')
-  return s:strip(printf("[%s] %s\t%s\t%s", s:yellow(a:b, 'Number'), flag, name, extra))
+  let target = line == 0 ? name : name.':'.line
+  return s:strip(printf("%s\t%d\t[%s] %s\t%s\t%s", target, line, s:yellow(a:b, 'Number'), flag, name, extra))
 endfunction
 
 function! s:sort_buffers(...)
@@ -623,7 +693,7 @@ function! s:sort_buffers(...)
   return b1 < b2 ? 1 : -1
 endfunction
 
-function! s:buflisted_sorted()
+function! fzf#vim#_buflisted_sorted()
   return sort(s:buflisted(), 's:sort_buffers')
 endfunction
 
@@ -631,32 +701,31 @@ function! fzf#vim#buffers(...)
   let [query, args] = (a:0 && type(a:1) == type('')) ?
         \ [a:1, a:000[1:]] : ['', a:000]
   return s:fzf('buffers', {
-  \ 'source':  map(s:buflisted_sorted(), 's:format_buffer(v:val)'),
+  \ 'source':  map(fzf#vim#_buflisted_sorted(), 'fzf#vim#_format_buffer(v:val)'),
   \ 'sink*':   s:function('s:bufopen'),
-  \ 'options': ['-m', '--extended', '--tiebreak=index', '--header-lines=1', '--ansi', '-d', '\t', '-n', '2,1..2', '--prompt', 'Buf> ', '--query', query]
+  \ 'options': ['--no-multi', '-x', '--tiebreak=index', '--header-lines=1', '--ansi', '-d', '\t', '--with-nth', '3..', '-n', '2,1..2', '--prompt', 'Buf> ', '--query', query, '--preview-window', '+{2}-/2']
   \}, args)
 endfunction
 
 " ------------------------------------------------------------------
 " Ag / Rg
 " ------------------------------------------------------------------
-function! s:ag_to_qf(line, with_column)
-  let parts = split(a:line, ':')
-  let text = join(parts[(a:with_column ? 3 : 2):], ':')
-  let dict = {'filename': &acd ? fnamemodify(parts[0], ':p') : parts[0], 'lnum': parts[1], 'text': text}
-  if a:with_column
-    let dict.col = parts[2]
+function! s:ag_to_qf(line, has_column)
+  let parts = matchlist(a:line, '\(.\{-}\)\s*:\s*\(\d\+\)\%(\s*:\s*\(\d\+\)\)\?\%(\s*:\(.*\)\)\?')
+  let dict = {'filename': &acd ? fnamemodify(parts[1], ':p') : parts[1], 'lnum': parts[2], 'text': parts[4]}
+  if a:has_column
+    let dict.col = parts[3]
   endif
   return dict
 endfunction
 
-function! s:ag_handler(lines, with_column)
+function! s:ag_handler(lines, has_column)
   if len(a:lines) < 2
     return
   endif
 
   let cmd = s:action_for(a:lines[0], 'e')
-  let list = map(filter(a:lines[1:], 'len(v:val)'), 's:ag_to_qf(v:val, a:with_column)')
+  let list = map(filter(a:lines[1:], 'len(v:val)'), 's:ag_to_qf(v:val, a:has_column)')
   if empty(list)
     return
   endif
@@ -665,7 +734,7 @@ function! s:ag_handler(lines, with_column)
   try
     call s:open(cmd, first.filename)
     execute first.lnum
-    if a:with_column
+    if a:has_column
       execute 'normal!' first.col.'|'
     endif
     normal! zz
@@ -721,7 +790,7 @@ function! fzf#vim#ag(query, ...)
   let query = empty(a:query) ? '^(?=.)' : a:query
   let args = copy(a:000)
   let ag_opts = len(args) > 1 && type(args[0]) == s:TYPE.string ? remove(args, 0) : ''
-  let command = ag_opts . ' ' . skim#shellescape(query)
+  let command = ag_opts . ' -- ' . skim#shellescape(query)
   return call('fzf#vim#ag_raw', insert(args, command, 0))
 endfunction
 
@@ -733,8 +802,8 @@ function! fzf#vim#ag_raw(command_suffix, ...)
   return call('fzf#vim#grep', extend(['ag --nogroup --column --color '.a:command_suffix, 1], a:000))
 endfunction
 
-" command, with_column, [options]
-function! fzf#vim#grep(grep_command, with_column, ...)
+" command (string), has_column (0/1), [options (dict)], [fullscreen (0/1)]
+function! fzf#vim#grep(grep_command, has_column, ...)
   let words = []
   for word in split(a:grep_command)
     if word !~# '^[a-z]'
@@ -746,17 +815,23 @@ function! fzf#vim#grep(grep_command, with_column, ...)
   let name    = join(words, '-')
   let capname = join(map(words, 'toupper(v:val[0]).v:val[1:]'), '')
   let opts = {
-  \ 'source':  a:grep_command,
-  \ 'column':  a:with_column,
+  \ 'column':  a:has_column,
   \ 'options': ['--ansi', '--prompt', capname.'> ',
   \             '--multi', '--bind', 'alt-a:select-all,alt-d:deselect-all',
+  \             '--delimiter', ':', '--preview-window', '+{2}-/2',
   \             '--color', 'hl:4,hl+:12']
   \}
   function! opts.sink(lines)
     return s:ag_handler(a:lines, self.column)
   endfunction
   let opts['sink*'] = remove(opts, 'sink')
-  return s:fzf(name, opts, a:000)
+  try
+    let prev_default_command = $FZF_DEFAULT_COMMAND
+    let $FZF_DEFAULT_COMMAND = a:grep_command
+    return s:fzf(name, opts, a:000)
+  finally
+    let $FZF_DEFAULT_COMMAND = prev_default_command
+  endtry
 endfunction
 
 " ------------------------------------------------------------------
@@ -796,7 +871,7 @@ function! s:btags_sink(lines)
     call add(qfl, {'filename': expand('%'), 'lnum': line('.'), 'text': getline('.')})
   endfor
   call s:fill_quickfix(qfl, 'cfirst')
-  normal! zz
+  normal! zvzz
 endfunction
 
 " query, [[tag commands], options]
@@ -815,7 +890,7 @@ function! fzf#vim#buffer_tags(query, ...)
     return s:fzf('btags', {
     \ 'source':  s:btags_source(tag_cmds),
     \ 'sink*':   s:function('s:btags_sink'),
-    \ 'options': ['--layout=reverse-list', '-m', '-d', '\t', '--with-nth', '1,4..', '-n', '1', '--prompt', 'BTags> ', '--query', a:query]}, args)
+    \ 'options': s:reverse_list(['-m', '-d', '\t', '--with-nth', '1,4..', '-n', '1', '--prompt', 'BTags> ', '--query', a:query, '--preview-window', '+{3}-/2'])}, args)
   catch
     return s:warn(v:exception)
   endtry
@@ -853,7 +928,7 @@ function! s:tags_sink(lines)
     let [&magic, &wrapscan, &acd] = [magic, wrapscan, acd]
   endtry
   call s:fill_quickfix(qfl, 'clast')
-  normal! zz
+  normal! zvzz
 endfunction
 
 function! fzf#vim#tags(query, ...)
@@ -1037,7 +1112,7 @@ function! fzf#vim#helptags(...)
     silent! call delete(s:helptags_script)
   endif
   let s:helptags_script = tempname()
-  call writefile(['/('.(s:is_win ? '^[A-Z]:\/.*?[^:]' : '.*?').'):(.*?)\t(.*?)\t/; printf(qq('.s:green('%-40s', 'Label').'\t%s\t%s\n), $2, $3, $1)'], s:helptags_script)
+  call writefile(['/('.(s:is_win ? '^[A-Z]:[\/\\].*?[^:]' : '.*?').'):(.*?)\t(.*?)\t/; printf(qq('.s:green('%-40s', 'Label').'\t%s\t%s\n), $2, $3, $1)'], s:helptags_script)
   return s:fzf('helptags', {
   \ 'source':  'grep -H ".*" '.join(map(tags, 'skim#shellescape(v:val)')).
     \ ' | perl -n '.skim#shellescape(s:helptags_script).' | sort',
@@ -1160,10 +1235,10 @@ function! s:commits(buffer_local, args)
   let options = {
   \ 'source':  source,
   \ 'sink*':   s:function('s:commits_sink'),
-  \ 'options': ['--ansi', '--multi', '--tiebreak=index', '--layout=reverse-list',
+  \ 'options': s:reverse_list(['--ansi', '--multi', '--tiebreak=index',
   \   '--inline-info', '--prompt', command.'> ', '--bind=ctrl-s:toggle-sort',
   \   '--header', ':: Press '.s:magenta('CTRL-S', 'Special').' to toggle sort, '.s:magenta('CTRL-Y', 'Special').' to yank commit hashes',
-  \   '--expect=ctrl-y,'.expect_keys]
+  \   '--expect=ctrl-y,'.expect_keys])
   \ }
 
   if a:buffer_local
@@ -1173,7 +1248,7 @@ function! s:commits(buffer_local, args)
 
   if !s:is_win && &columns > s:wide
     call extend(options.options,
-    \ ['--preview', 'echo {} | grep -o "[a-f0-9]\{7,\}" | head -1 | xargs git show --format=format: --color=always | head -200'])
+    \ ['--preview', 'echo {} | grep -o "[a-f0-9]\{7,\}" | head -1 | xargs git show --format=format: --color=always | head -1000'])
   endif
 
   return s:fzf(a:buffer_local ? 'bcommits' : 'commits', options, a:args)
@@ -1230,10 +1305,13 @@ function! fzf#vim#maps(mode, ...)
   let curr = ''
   for line in split(cout, "\n")
     if line =~ "^\t"
-      let src = '  '.join(reverse(reverse(split(split(line)[-1], '/'))[0:2]), '/')
+      let src = "\t".substitute(matchstr(line, '/\zs[^/\\]*\ze$'), ' [^ ]* ', ':', '')
       call add(list, printf('%s %s', curr, s:green(src, 'Comment')))
       let curr = ''
     else
+      if !empty(curr)
+        call add(list, curr)
+      endif
       let curr = line[3:]
     endif
   endfor
@@ -1359,4 +1437,3 @@ endfunction
 " ------------------------------------------------------------------
 let &cpo = s:cpo_save
 unlet s:cpo_save
-

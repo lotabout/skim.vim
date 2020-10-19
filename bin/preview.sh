@@ -17,13 +17,21 @@ if [[ $1 =~ ^[A-Z]:\\ ]]; then
   CENTER=${INPUT[2]}
 fi
 
+if [[ -n "$CENTER" && ! "$CENTER" =~ ^[0-9] ]]; then
+  exit 1
+fi
+CENTER=${CENTER/[^0-9]*/}
+
+FILE="${FILE/#\~\//$HOME/}"
 if [ ! -r "$FILE" ]; then
   echo "File not found ${FILE}"
   exit 1
 fi
 
-if [[ "$(file --dereference --mime "$FILE")" =~ binary ]]; then
-  echo "$1 is a binary file"
+FILE_LENGTH=${#FILE}
+MIME=$(file --dereference --mime "$FILE")
+if [[ "${MIME:FILE_LENGTH}" =~ binary ]]; then
+  echo "$MIME"
   exit 0
 fi
 
@@ -31,23 +39,17 @@ if [ -z "$CENTER" ]; then
   CENTER=0
 fi
 
-if [ -z "$LINES" ]; then
-  if [ -r /dev/tty ]; then
-    LINES=$(stty size < /dev/tty | awk '{print $1}')
-  else
-    LINES=40
-  fi
+if [ -z "$FZF_PREVIEW_COMMAND" ] && command -v bat > /dev/null; then
+  bat --style="${BAT_STYLE:-numbers}" --color=always --pager=never \
+      --highlight-line=$CENTER "$FILE"
+  exit $?
 fi
 
-FIRST=$(($CENTER-$LINES/3))
-FIRST=$(($FIRST < 1 ? 1 : $FIRST))
-LAST=$((${FIRST}+${LINES}-1))
-
-DEFAULT_COMMAND="bat --style=numbers --color=always {} || highlight -O ansi -l {} || coderay {} || rougify {} || cat {}"
+DEFAULT_COMMAND="highlight -O ansi -l {} || coderay {} || rougify {} || cat {}"
 CMD=${FZF_PREVIEW_COMMAND:-$DEFAULT_COMMAND}
 CMD=${CMD//{\}/$(printf %q "$FILE")}
 
-eval "$CMD" 2> /dev/null | awk "NR >= $FIRST && NR <= $LAST { \
+eval "$CMD" 2> /dev/null | awk "{ \
     if (NR == $CENTER) \
         { gsub(/\x1b[[0-9;]*m/, \"&$REVERSE\"); printf(\"$REVERSE%s\n$RESET\", \$0); } \
     else printf(\"$RESET%s\n\", \$0); \
