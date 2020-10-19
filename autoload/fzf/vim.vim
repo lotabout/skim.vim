@@ -773,6 +773,7 @@ function! fzf#vim#grep_interactive(command, with_column, ...)
   \ 'options': ['-i', '-c', a:command,
   \             '--ansi', '--cmd-prompt', capname.'> ',
   \             '--multi', '--bind', 'alt-a:select-all,alt-d:deselect-all',
+  \             '--skip-to-pattern', '[^/]*:',
   \             '--color', 'hl:68,hl+:110']
   \}
   function! opts.sink(lines)
