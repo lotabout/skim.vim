@@ -774,7 +774,8 @@ function! fzf#vim#grep_interactive(command, with_column, ...)
   \             '--ansi', '--cmd-prompt', capname.'> ',
   \             '--multi', '--bind', 'alt-a:select-all,alt-d:deselect-all',
   \             '--skip-to-pattern', '[^/]*:',
-  \             '--color', 'hl:68,hl+:110']
+  \             '--delimiter', ':', '--preview-window', '+{2}-/2',
+  \             '--color', 'hl:4,hl+:12']
   \}
   function! opts.sink(lines)
     return s:ag_handler(a:lines, self.column)
