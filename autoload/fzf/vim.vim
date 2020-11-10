@@ -28,7 +28,7 @@ set cpo&vim
 " Common
 " ------------------------------------------------------------------
 
-let s:min_version = '0.23.0'
+let s:min_version = '0.9.3'
 let s:is_win = has('win32') || has('win64')
 let s:layout_keys = ['window', 'up', 'down', 'left', 'right']
 let s:bin_dir = expand('<sfile>:p:h:h:h').'/bin/'
