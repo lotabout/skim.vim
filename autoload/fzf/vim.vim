@@ -52,9 +52,10 @@ function! s:version_requirement(val, min)
   let val = split(a:val, '\.')
   let min = split(a:min, '\.')
   for idx in range(0, len(min) - 1)
-    let v = get(val, idx, 0)
-    if     v < min[idx] | return 0
-    elseif v > min[idx] | return 1
+    let v = str2nr(get(val, idx, 0))
+    let m = str2nr(min[idx])
+    if     v < m | return 0
+    elseif v > m | return 1
     endif
   endfor
   return 1
