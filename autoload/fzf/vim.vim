@@ -73,7 +73,7 @@ function! s:check_requirements()
     throw "skim#exec function not found. You need to upgrade Vim plugin from the main fzf repository ('junegunn/fzf')"
   endif
   let exec = skim#exec()
-  let fzf_version = matchstr(systemlist(exec .. ' --version')[0], '[0-9.]*')
+  let fzf_version = matchstr(systemlist(exec .. ' --version')[0], '[0-9\.]\+')
 
   if s:version_requirement(fzf_version, s:min_version)
     let s:checked = 1
