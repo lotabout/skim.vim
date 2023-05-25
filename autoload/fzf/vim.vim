@@ -196,6 +196,17 @@ function! s:wrap(name, opts, bang)
   else
     let wrapped = skim#wrap(a:name, opts, a:bang)
   endif
+
+  " Action: g:fzf_action
+  if !s:has_any(opts, ['sink', 'sinklist', 'sink*'])
+    let wrapped._action = get(g:, 'fzf_action', s:default_action)
+    let wrapped.options .= ' --expect='.join(keys(opts._action), ',')
+    function! opts.sinklist(lines) abort
+      return s:common_sink(self._action, a:lines)
+    endfunction
+    let wrapped['sink*'] = opts.sinklist " For backward compatibility
+  endif
+
   return wrapped
 endfunction
 
