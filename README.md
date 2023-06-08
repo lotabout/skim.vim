@@ -9,6 +9,21 @@ Plug 'lotabout/skim', { 'dir': '~/.skim', 'do': './install' }
 Plug 'lotabout/skim.vim'
 ```
 
+### Using vim 8 native packages
+```
+git clone https://github.com/lotabout/skim.git ~/.vim/pack/packages/start/skim
+git clone https://github.com/lotabout/skim.vim.git ~/.vim/pack/packages/start/skim.vim
+```
+Also consider using one of the newer package managers built to work with vim 8 such as
+[minpack](https://github.com/k-takata/minpac) or
+[pack](https://github.com/maralla/pack).
+
+The advantage being that they add install/update/uninstall options as well as configuration.
+
+### Using pack
+`pack install lotabout/skim loatbout/skim.vim`
+
+
 Besides, skim.vim add the interactive version of `ag` and `rg` function, you
 could add these lines to your vimrc and try out.
 
